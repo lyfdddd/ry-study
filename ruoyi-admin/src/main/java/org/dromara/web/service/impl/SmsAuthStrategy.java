@@ -1,0 +1,186 @@
+package org.dromara.web.service.impl;
+
+// Sa-Token工具类，用于登录认证相关操作
+import cn.dev33.satoken.stp.StpUtil;
+// Sa-Token登录参数对象，用于配置登录参数
+import cn.dev33.satoken.stp.parameter.SaLoginParameter;
+// Hutool对象工具类
+import cn.hutool.core.util.ObjectUtil;
+// MyBatis-Plus Lambda查询包装器，用于类型安全的数据库查询
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+// Lombok注解：自动生成final字段的构造方法
+import lombok.RequiredArgsConstructor;
+// Lombok注解：自动生成slf4j日志对象
+import lombok.extern.slf4j.Slf4j;
+// 系统常量定义
+import org.dromara.common.core.constant.Constants;
+// 全局常量定义
+import org.dromara.common.core.constant.GlobalConstants;
+// 系统常量定义
+import org.dromara.common.core.constant.SystemConstants;
+// 登录用户模型
+import org.dromara.common.core.domain.model.LoginUser;
+// 短信登录请求体
+import org.dromara.common.core.domain.model.SmsLoginBody;
+// 登录类型枚举
+import org.dromara.common.core.enums.LoginType;
+// 验证码过期异常类
+import org.dromara.common.core.exception.user.CaptchaExpireException;
+// 用户异常类
+import org.dromara.common.core.exception.user.UserException;
+// 核心工具类集合
+import org.dromara.common.core.utils.MessageUtils;
+import org.dromara.common.core.utils.StringUtils;
+import org.dromara.common.core.utils.ValidatorUtils;
+// JSON工具类
+import org.dromara.common.json.utils.JsonUtils;
+// Redis操作工具类
+import org.dromara.common.redis.utils.RedisUtils;
+// Sa-Token登录助手工具类
+import org.dromara.common.satoken.utils.LoginHelper;
+// 租户助手工具类，用于租户上下文切换
+import org.dromara.common.tenant.helper.TenantHelper;
+// 系统用户实体类
+import org.dromara.system.domain.SysUser;
+// 客户端视图对象
+import org.dromara.system.domain.vo.SysClientVo;
+// 用户视图对象
+import org.dromara.system.domain.vo.SysUserVo;
+// 用户Mapper接口
+import org.dromara.system.mapper.SysUserMapper;
+// 登录视图对象
+import org.dromara.web.domain.vo.LoginVo;
+// 认证策略接口
+import org.dromara.web.service.IAuthStrategy;
+// 登录服务
+import org.dromara.web.service.SysLoginService;
+// Spring服务注解
+import org.springframework.stereotype.Service;
+
+/**
+ * 短信认证策略
+ *
+ * @author Michelle.Chung
+ */
+// Lombok注解：自动生成slf4j日志对象
+@Slf4j
+// Spring服务注解：标记为服务层组件，Bean名称为smsAuthStrategy
+@Service("sms" + IAuthStrategy.BASE_NAME)
+// Lombok注解：自动生成final字段的构造方法
+@RequiredArgsConstructor
+public class SmsAuthStrategy implements IAuthStrategy {
+
+    // 注入登录服务
+    private final SysLoginService loginService;
+    // 注入用户Mapper接口
+    private final SysUserMapper userMapper;
+
+    /**
+     * 短信登录实现
+     *
+     * @param body 登录请求体JSON字符串
+     * @param client 客户端信息
+     * @return 登录视图对象
+     */
+    @Override
+    public LoginVo login(String body, SysClientVo client) {
+        // 将JSON字符串解析为短信登录请求体对象
+        SmsLoginBody loginBody = JsonUtils.parseObject(body, SmsLoginBody.class);
+        // 验证请求体参数合法性
+        ValidatorUtils.validate(loginBody);
+        // 获取租户ID
+        String tenantId = loginBody.getTenantId();
+        // 获取手机号
+        String phonenumber = loginBody.getPhonenumber();
+        // 获取短信验证码
+        String smsCode = loginBody.getSmsCode();
+        // 在指定租户下执行用户查询和验证
+        LoginUser loginUser = TenantHelper.dynamic(tenantId, () -> {
+            // 根据手机号加载用户信息
+            SysUserVo user = loadUserByPhonenumber(phonenumber);
+            // 校验登录：验证短信验证码是否正确
+            // supplier返回true表示验证失败，触发错误计数
+            loginService.checkLogin(LoginType.SMS, tenantId, user.getUserName(), () -> !validateSmsCode(tenantId, phonenumber, smsCode));
+            // 构建登录用户对象
+            // 此处可根据登录用户的数据不同自行创建loginUser，属性不够用继承扩展
+            return loginService.buildLoginUser(user);
+        });
+        // 设置客户端标识
+        loginUser.setClientKey(client.getClientKey());
+        // 设置设备类型
+        loginUser.setDeviceType(client.getDeviceType());
+        // 创建Sa-Token登录参数对象
+        SaLoginParameter model = new SaLoginParameter();
+        // 设置设备类型
+        model.setDeviceType(client.getDeviceType());
+        // 自定义分配不同用户体系不同token授权时间，不设置默认走全局yml配置
+        // 例如：后台用户30分钟过期，app用户1天过期
+        // 设置token过期时间
+        model.setTimeout(client.getTimeout());
+        // 设置token活跃超时时间（长时间不操作自动过期）
+        model.setActiveTimeout(client.getActiveTimeout());
+        // 设置额外数据：客户端ID
+        model.setExtra(LoginHelper.CLIENT_KEY, client.getClientId());
+        // 执行登录，生成token
+        LoginHelper.login(loginUser, model);
+
+        // 创建登录视图对象
+        LoginVo loginVo = new LoginVo();
+        // 获取token值
+        loginVo.setAccessToken(StpUtil.getTokenValue());
+        // 获取token过期时间
+        loginVo.setExpireIn(StpUtil.getTokenTimeout());
+        // 设置客户端ID
+        loginVo.setClientId(client.getClientId());
+        // 返回登录视图对象
+        return loginVo;
+    }
+
+    /**
+     * 校验短信验证码
+     *
+     * @param tenantId 租户ID
+     * @param phonenumber 手机号
+     * @param smsCode 短信验证码
+     * @return 验证是否成功
+     */
+    private boolean validateSmsCode(String tenantId, String phonenumber, String smsCode) {
+        // 从Redis获取短信验证码
+        String code = RedisUtils.getCacheObject(GlobalConstants.CAPTCHA_CODE_KEY + phonenumber);
+        // 验证码不存在（已过期）
+        if (StringUtils.isBlank(code)) {
+            // 记录登录失败日志
+            loginService.recordLogininfor(tenantId, phonenumber, Constants.LOGIN_FAIL, MessageUtils.message("user.jcaptcha.expire"));
+            // 抛出验证码过期异常
+            throw new CaptchaExpireException();
+        }
+        // 比较验证码是否一致
+        return code.equals(smsCode);
+    }
+
+    /**
+     * 根据手机号加载用户信息
+     *
+     * @param phonenumber 手机号
+     * @return 用户视图对象
+     */
+    private SysUserVo loadUserByPhonenumber(String phonenumber) {
+        // 使用MyBatis-Plus Lambda查询，根据手机号查询用户
+        SysUserVo user = userMapper.selectVoOne(new LambdaQueryWrapper<SysUser>().eq(SysUser::getPhonenumber, phonenumber));
+        // 用户不存在
+        if (ObjectUtil.isNull(user)) {
+            // 记录日志
+            log.info("登录用户：{} 不存在.", phonenumber);
+            // 抛出用户异常
+            throw new UserException("user.not.exists", phonenumber);
+        } else if (SystemConstants.DISABLE.equals(user.getStatus())) {
+            // 用户已停用
+            log.info("登录用户：{} 已被停用.", phonenumber);
+            // 抛出用户异常
+            throw new UserException("user.blocked", phonenumber);
+        }
+        // 返回用户视图对象
+        return user;
+    }
+
+}
