@@ -18,35 +18,50 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
  *
  * @author Lion Li
  */
+// Spring MVC的REST控制器注解，处理HTTP请求并返回JSON响应
 @RestController
+// 条件注解，当配置项sse.enabled的值为true时才加载此控制器
 @ConditionalOnProperty(value = "sse.enabled", havingValue = "true")
+// Lombok注解，自动生成包含所有final字段的构造函数
 @RequiredArgsConstructor
 public class SseController implements DisposableBean {
 
+    // 注入SseEmitterManager，用于管理SSE连接的生命周期
     private final SseEmitterManager sseEmitterManager;
 
     /**
      * 建立 SSE 连接
      */
+    // 处理GET请求，路径从配置文件中读取，返回类型为text/event-stream（SSE标准格式）
     @GetMapping(value = "${sse.path}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter connect() {
+        // 检查用户是否已登录，未登录返回null（不建立连接）
         if (!StpUtil.isLogin()) {
             return null;
         }
+        // 获取当前用户的Token值，用于标识具体连接
         String tokenValue = StpUtil.getTokenValue();
+        // 获取当前用户ID
         Long userId = LoginHelper.getUserId();
+        // 调用SseEmitterManager建立连接
         return sseEmitterManager.connect(userId, tokenValue);
     }
 
     /**
      * 关闭 SSE 连接
      */
+    // Sa-Token注解，忽略此接口的鉴权（允许未登录访问）
     @SaIgnore
+    // 处理GET请求，路径为/sse/close
     @GetMapping(value = "${sse.path}/close")
     public R<Void> close() {
+        // 获取当前用户的Token值
         String tokenValue = StpUtil.getTokenValue();
+        // 获取当前用户ID
         Long userId = LoginHelper.getUserId();
+        // 调用SseEmitterManager断开连接
         sseEmitterManager.disconnect(userId, tokenValue);
+        // 返回成功响应
         return R.ok();
     }
 
@@ -80,6 +95,7 @@ public class SseController implements DisposableBean {
     /**
      * 清理资源。此方法目前不执行任何操作，但避免因未实现而导致错误
      */
+    // 实现DisposableBean接口的销毁方法，在Bean销毁时调用
     @Override
     public void destroy() throws Exception {
         // 销毁时不需要做什么 此方法避免无用操作报错

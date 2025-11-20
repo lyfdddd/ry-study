@@ -36,6 +36,8 @@ public class TreeBuildUtils extends TreeUtil {
      * 前端组件（如Element UI、Ant Design）通常使用label作为显示字段
      * 这样可以避免前后端字段不一致的问题
      */
+    // 默认树节点配置，将nameKey设置为"label"以适配前端组件
+    // 前端组件（如Element UI、Ant Design）通常使用label作为显示字段
     public static final TreeNodeConfig DEFAULT_CONFIG = TreeNodeConfig.DEFAULT_CONFIG.setNameKey("label");
 
     /**
@@ -49,6 +51,8 @@ public class TreeBuildUtils extends TreeUtil {
      * @param nodeParser 解析器，用于将输入节点转换为树节点
      * @return 构建好的树形结构列表
      */
+    // 构建树形结构（自动检测根节点）
+    // 自动从列表中第一个元素获取parentId作为顶级节点ID
     public static <T, K> List<Tree<K>> build(List<T> list, NodeParser<T, K> nodeParser) {
         // 如果列表为空，返回空列表
         if (CollUtil.isEmpty(list)) {
@@ -73,6 +77,8 @@ public class TreeBuildUtils extends TreeUtil {
      * @param nodeParser 解析器，用于将输入节点转换为树节点
      * @return 构建好的树形结构列表
      */
+    // 构建树形结构（指定根节点）
+    // 根据指定的parentId作为顶级节点构建树形结构
     public static <T, K> List<Tree<K>> build(List<T> list, K parentId, NodeParser<T, K> nodeParser) {
         // 如果列表为空，返回空列表
         if (CollUtil.isEmpty(list)) {
@@ -97,6 +103,8 @@ public class TreeBuildUtils extends TreeUtil {
      * @param parser 树节点属性映射器，用于将原始节点T转为Tree节点
      * @return 构建完成的树形结构（可能包含多个顶级根节点）
      */
+    // 构建多根节点的树结构（支持多个顶级节点）
+    // 自动检测所有根节点（没有父节点的节点），并为每个根节点构建子树
     public static <T, K> List<Tree<K>> buildMultiRoot(List<T> list, Function<T, K> getId, Function<T, K> getParentId, NodeParser<T, K> parser) {
         // 如果列表为空，返回空列表
         if (CollUtil.isEmpty(list)) {
@@ -129,6 +137,8 @@ public class TreeBuildUtils extends TreeUtil {
      * @param nodes 节点列表（树形结构）
      * @return 包含所有叶子节点的列表
      */
+    // 获取节点列表中所有节点的叶子节点
+    // 叶子节点是指没有子节点的节点
     public static <K> List<Tree<K>> getLeafNodes(List<Tree<K>> nodes) {
         // 如果节点列表为空，返回空列表
         if (CollUtil.isEmpty(nodes)) {
@@ -150,6 +160,8 @@ public class TreeBuildUtils extends TreeUtil {
      * @param node 要查找叶子节点的根节点
      * @return 包含所有叶子节点的Stream
      */
+    // 获取指定节点下的所有叶子节点（递归方法）
+    // 私有方法，用于递归提取叶子节点
     private static <K> Stream<Tree<K>> extractLeafNodes(Tree<K> node) {
         // 如果节点没有子节点，说明是叶子节点，返回包含该节点的Stream
         if (!node.hasChild()) {

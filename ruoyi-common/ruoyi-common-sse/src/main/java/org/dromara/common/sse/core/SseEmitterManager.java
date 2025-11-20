@@ -23,18 +23,21 @@ import java.util.function.Consumer;
  *
  * @author Lion Li
  */
+// Lombok日志注解，自动生成log日志对象
 @Slf4j
 public class SseEmitterManager {
 
     /**
-     * 订阅的频道
+     * 订阅的频道，用于Redis发布订阅
      */
     private final static String SSE_TOPIC = "global:sse";
 
+    // 存储用户SSE连接的映射表，外层key是用户ID，内层key是token，value是SseEmitter对象
     private final static Map<Long, Map<String, SseEmitter>> USER_TOKEN_EMITTERS = new ConcurrentHashMap<>();
 
+    // 构造函数，初始化时启动心跳检测任务
     public SseEmitterManager() {
-        // 定时执行 SSE 心跳检测
+        // 定时执行 SSE 心跳检测，每60秒执行一次
         SpringUtils.getBean(ScheduledExecutorService.class)
             .scheduleWithFixedDelay(this::sseMonitor, 60L, 60L, TimeUnit.SECONDS);
     }

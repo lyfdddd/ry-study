@@ -123,80 +123,117 @@ public class LogAspect {
     }
 
     /**
-     * 获取注解中对方法的描述信息 用于Controller层注解
+     * 获取注解中对方法的描述信息
+     * 从@Log注解中提取配置信息并设置到操作日志对象中
      *
-     * @param log     日志
-     * @param operLog 操作日志
-     * @throws Exception
+     * @param joinPoint 切点对象
+     * @param log @Log注解实例
+     * @param operLog 操作日志事件对象
+     * @param jsonResult 方法返回的JSON结果
+     * @throws Exception 可能抛出的异常
      */
     public void getControllerMethodDescription(JoinPoint joinPoint, Log log, OperLogEvent operLog, Object jsonResult) throws Exception {
-        // 设置action动作
+        // 设置业务类型（从枚举转换为整数）
         operLog.setBusinessType(log.businessType().ordinal());
-        // 设置标题
+        // 设置模块标题
         operLog.setTitle(log.title());
-        // 设置操作人类别
+        // 设置操作人类别（从枚举转换为整数）
         operLog.setOperatorType(log.operatorType().ordinal());
-        // 是否需要保存request，参数和值
+        // 判断是否需要保存请求参数
         if (log.isSaveRequestData()) {
-            // 获取参数的信息，传入到数据库中。
+            // 获取请求参数信息并设置到操作日志中
             setRequestValue(joinPoint, operLog, log.excludeParamNames());
         }
-        // 是否需要保存response，参数和值
+        // 判断是否需要保存响应参数且返回结果不为null
         if (log.isSaveResponseData() && ObjectUtil.isNotNull(jsonResult)) {
+            // 将返回结果序列化为JSON字符串并截取前3800个字符
             operLog.setJsonResult(StringUtils.substring(JsonUtils.toJsonString(jsonResult), 0, 3800));
         }
     }
 
     /**
-     * 获取请求的参数，放到log中
+     * 获取请求的参数并设置到操作日志中
+     * 根据请求方式不同，采用不同的参数获取策略
      *
-     * @param operLog 操作日志
-     * @throws Exception 异常
+     * @param joinPoint 切点对象
+     * @param operLog 操作日志事件对象
+     * @param excludeParamNames 需要排除的参数名数组
+     * @throws Exception 可能抛出的异常
      */
     private void setRequestValue(JoinPoint joinPoint, OperLogEvent operLog, String[] excludeParamNames) throws Exception {
+        // 获取请求参数Map（URL参数）
         Map<String, String> paramsMap = ServletUtils.getParamMap(ServletUtils.getRequest());
+        // 获取HTTP请求方式
         String requestMethod = operLog.getRequestMethod();
+        // 如果URL参数为空且是PUT/POST/DELETE请求，从方法参数中获取
         if (MapUtil.isEmpty(paramsMap) && StringUtils.equalsAny(requestMethod, HttpMethod.PUT.name(), HttpMethod.POST.name(), HttpMethod.DELETE.name())) {
+            // 将方法参数数组转换为JSON字符串
             String params = argsArrayToString(joinPoint.getArgs(), excludeParamNames);
+            // 截取前3800个字符并设置到操作日志
             operLog.setOperParam(StringUtils.substring(params, 0, 3800));
         } else {
+            // 移除敏感属性字段
             MapUtil.removeAny(paramsMap, EXCLUDE_PROPERTIES);
+            // 移除自定义排除字段
             MapUtil.removeAny(paramsMap, excludeParamNames);
+            // 将参数Map序列化为JSON字符串并截取前3800个字符
             operLog.setOperParam(StringUtils.substring(JsonUtils.toJsonString(paramsMap), 0, 3800));
         }
     }
 
     /**
-     * 参数拼装
+     * 将参数数组转换为字符串
+     * 处理不同类型的参数对象，过滤敏感信息
+     *
+     * @param paramsArray 参数对象数组
+     * @param excludeParamNames 需要排除的参数名数组
+     * @return 处理后的参数字符串
      */
     private String argsArrayToString(Object[] paramsArray, String[] excludeParamNames) {
+        // 使用StringJoiner拼接参数字符串，以空格分隔
         StringJoiner params = new StringJoiner(" ");
+        // 如果参数数组为空，返回空字符串
         if (ArrayUtil.isEmpty(paramsArray)) {
             return params.toString();
         }
+        // 合并默认排除字段和自定义排除字段
         String[] exclude = ArrayUtil.addAll(excludeParamNames, EXCLUDE_PROPERTIES);
+        // 遍历参数数组
         for (Object o : paramsArray) {
+            // 如果参数不为null且不是需要过滤的对象
             if (ObjectUtil.isNotNull(o) && !isFilterObject(o)) {
                 String str = "";
+                // 如果参数是List类型
                 if (o instanceof List<?> list) {
+                    // 创建List用于存储处理后的Dict对象
                     List<Dict> list1 = new ArrayList<>();
+                    // 遍历List中的每个元素
                     for (Object obj : list) {
+                        // 将对象序列化为JSON字符串
                         String str1 = JsonUtils.toJsonString(obj);
+                        // 将JSON字符串解析为Dict对象
                         Dict dict = JsonUtils.parseMap(str1);
+                        // 如果Dict不为空，移除敏感字段
                         if (MapUtil.isNotEmpty(dict)) {
                             MapUtil.removeAny(dict, exclude);
                             list1.add(dict);
                         }
                     }
+                    // 将处理后的List序列化为JSON字符串
                     str = JsonUtils.toJsonString(list1);
                 } else {
+                    // 将对象序列化为JSON字符串
                     str = JsonUtils.toJsonString(o);
+                    // 将JSON字符串解析为Dict对象
                     Dict dict = JsonUtils.parseMap(str);
+                    // 如果Dict不为空，移除敏感字段
                     if (MapUtil.isNotEmpty(dict)) {
                         MapUtil.removeAny(dict, exclude);
+                        // 将处理后的Dict序列化为JSON字符串
                         str = JsonUtils.toJsonString(dict);
                     }
                 }
+                // 将处理后的参数字符串添加到StringJoiner
                 params.add(str);
             }
         }
@@ -204,27 +241,33 @@ public class LogAspect {
     }
 
     /**
-     * 判断是否需要过滤的对象。
+     * 判断是否需要过滤的对象
+     * 过滤MultipartFile、HttpServletRequest等不需要记录的对象
      *
-     * @param o 对象信息。
-     * @return 如果是需要过滤的对象，则返回true；否则返回false。
+     * @param o 待判断的对象
+     * @return 如果需要过滤返回true，否则返回false
      */
     @SuppressWarnings("rawtypes")
     public boolean isFilterObject(final Object o) {
+        // 获取对象的Class
         Class<?> clazz = o.getClass();
+        // 如果是数组类型，判断数组元素类型是否为MultipartFile
         if (clazz.isArray()) {
             return MultipartFile.class.isAssignableFrom(clazz.getComponentType());
         } else if (Collection.class.isAssignableFrom(clazz)) {
+            // 如果是Collection类型，判断集合元素是否为MultipartFile
             Collection collection = (Collection) o;
             for (Object value : collection) {
                 return value instanceof MultipartFile;
             }
         } else if (Map.class.isAssignableFrom(clazz)) {
+            // 如果是Map类型，判断值是否为MultipartFile
             Map map = (Map) o;
             for (Object value : map.values()) {
                 return value instanceof MultipartFile;
             }
         }
+        // 判断对象本身是否为MultipartFile、HttpServletRequest、HttpServletResponse或BindingResult
         return o instanceof MultipartFile || o instanceof HttpServletRequest || o instanceof HttpServletResponse
                || o instanceof BindingResult;
     }

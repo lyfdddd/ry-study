@@ -1,4 +1,4 @@
-// 登录日志服务实现类所在的包路径
+// 系统访问日志服务实现类所在的包路径
 package org.dromara.system.service.impl;
 
 // Hutool工具类：对象判断工具，用于空值判断、类型转换等

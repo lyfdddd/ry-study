@@ -34,6 +34,8 @@ public class MapstructUtils {
      * Converter是线程安全的，可以在多线程环境下共享使用
      * 在应用启动时由Spring容器初始化并注入
      */
+    // 从Spring容器中获取Converter单例，用于对象转换
+    // Converter是Mapstruct-plus提供的核心转换器，线程安全
     private final static Converter CONVERTER = SpringUtils.getBean(Converter.class);
 
     /**
@@ -48,6 +50,9 @@ public class MapstructUtils {
      * @param desc   目标对象类型（转换后的对象类型）
      * @return 转换后的目标对象，如果源对象或目标类型为空则返回null
      */
+    // 将源对象转换为目标类型的对象
+    // 基于Mapstruct-plus的注解配置，自动映射相同名称的属性
+    // 转换逻辑在编译期生成，运行时性能极高
     public static <T, V> V convert(T source, Class<V> desc) {
         // 如果源对象为空，返回null，避免空指针异常
         // 这是防御式编程，确保方法的健壮性
@@ -77,6 +82,9 @@ public class MapstructUtils {
      * @param desc   目标对象（转换后的对象，已存在实例）
      * @return 填充后的目标对象，如果源对象或目标对象为空则返回null
      */
+    // 将源对象的属性拷贝到目标对象
+    // 与convert(T, Class<V>)不同，这个方法不会创建新对象，而是修改现有对象
+    // 适用于需要保留目标对象部分属性的场景
     public static <T, V> V convert(T source, V desc) {
         // 如果源对象为空，返回null
         // 没有数据源，无法进行属性拷贝
@@ -106,6 +114,9 @@ public class MapstructUtils {
      * @param desc       目标对象类型（转换后的对象类型）
      * @return 转换后的目标对象列表，如果源列表为空则返回空列表
      */
+    // 将源对象列表转换为目标类型的对象列表
+    // 批量转换集合中的每个对象，保持集合结构不变
+    // 性能优化：一次性转换整个集合，而不是循环调用单个转换
     public static <T, V> List<V> convert(List<T> sourceList, Class<V> desc) {
         // 如果源列表为null，返回null
         // 保持与输入一致，调用方可以区分null和空列表
@@ -134,6 +145,9 @@ public class MapstructUtils {
      * @param beanClass 目标Bean类型
      * @return 转换后的Bean对象，如果Map为空或目标类型为空则返回null
      */
+    // 将Map转换为指定类型的Bean对象
+    // 将Map中的键值对映射到Bean对象的属性
+    // 支持复杂类型的自动转换，如String转Date、String转Enum等
     public static <T> T convert(Map<String, Object> map, Class<T> beanClass) {
         // 如果Map为空，返回null
         // 没有数据源，无法进行转换

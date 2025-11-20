@@ -1,29 +1,54 @@
+// 客户端管理服务实现类所在的包路径
 package org.dromara.system.service.impl;
 
+// Hutool工具类：集合操作工具，提供集合判空、转换等方法
 import cn.hutool.core.collection.CollUtil;
+// Hutool工具类：对象判断工具，用于空值判断、类型转换等
 import cn.hutool.core.util.ObjectUtil;
+// Hutool工具类：加密工具，提供MD5、SHA等加密算法
 import cn.hutool.crypto.SecureUtil;
+// MyBatis-Plus核心组件：Lambda查询包装器，支持类型安全查询
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+// MyBatis-Plus核心组件：Lambda更新包装器，支持类型安全更新
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+// MyBatis-Plus核心组件：查询条件构建工具类
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+// MyBatis-Plus分页插件：分页对象
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+// Lombok注解：自动生成包含final字段的构造函数，实现依赖注入
 import lombok.RequiredArgsConstructor;
+// Lombok日志注解：自动生成slf4j的日志对象log
 import lombok.extern.slf4j.Slf4j;
+// 公共核心常量：缓存名称定义
 import org.dromara.common.core.constant.CacheNames;
+// 公共核心工具类：MapStruct对象转换工具
 import org.dromara.common.core.utils.MapstructUtils;
+// 公共核心工具类：字符串操作工具
 import org.dromara.common.core.utils.StringUtils;
+// MyBatis-Plus分页组件：分页查询参数
 import org.dromara.common.mybatis.core.page.PageQuery;
+// MyBatis-Plus分页组件：分页结果封装
 import org.dromara.common.mybatis.core.page.TableDataInfo;
+// 系统领域模型：客户端实体类
 import org.dromara.system.domain.SysClient;
+// 系统业务对象：客户端业务对象，用于接收前端参数
 import org.dromara.system.domain.bo.SysClientBo;
+// 系统视图对象：客户端视图对象，用于返回前端数据
 import org.dromara.system.domain.vo.SysClientVo;
+// 系统Mapper接口：客户端Mapper
 import org.dromara.system.mapper.SysClientMapper;
+// 客户端服务接口
 import org.dromara.system.service.ISysClientService;
+// Spring缓存注解：缓存删除，用于删除缓存
 import org.springframework.cache.annotation.CacheEvict;
+// Spring缓存注解：缓存查询，用于查询时缓存结果
 import org.springframework.cache.annotation.Cacheable;
+// Spring服务注解：标记为服务类，交由Spring容器管理
 import org.springframework.stereotype.Service;
 
+// Java集合工具类：提供集合操作
 import java.util.Collection;
+// Java集合工具类：提供列表操作
 import java.util.List;
 
 /**

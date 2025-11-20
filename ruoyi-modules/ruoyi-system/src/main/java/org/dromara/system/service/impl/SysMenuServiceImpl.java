@@ -1,4 +1,4 @@
-// 包声明：定义当前类所在的包路径，org.dromara.system.service.impl 表示系统模块服务实现层
+// 菜单管理服务实现类所在的包路径
 package org.dromara.system.service.impl;
 
 // Hutool工具类：集合操作工具，提供集合判空、转换等方法
