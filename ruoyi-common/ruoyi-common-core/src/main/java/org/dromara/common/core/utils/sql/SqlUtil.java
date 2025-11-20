@@ -1,8 +1,11 @@
-// SQL操作工具类，提供SQL注入防护功能
+// SQL操作工具类包声明，提供SQL注入防护功能
 package org.dromara.common.core.utils.sql;
 
+// Lombok注解：控制构造方法访问级别
 import lombok.AccessLevel;
+// Lombok注解：自动生成构造方法
 import lombok.NoArgsConstructor;
+// 导入字符串工具类，提供字符串操作能力
 import org.dromara.common.core.utils.StringUtils;
 
 /**
@@ -17,6 +20,7 @@ import org.dromara.common.core.utils.StringUtils;
 // Lombok注解：生成私有构造方法，防止工具类被实例化
 // 工具类不应该被实例化，所有方法都是静态方法
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
+// SQL注入防护工具类，提供关键字过滤和排序验证功能
 public class SqlUtil {
 
     /**
@@ -27,6 +31,7 @@ public class SqlUtil {
      * 使用竖线|作为分隔符，便于后续拆分处理
      * 注意：\u000B是垂直制表符，有时被用于绕过过滤
      */
+    // SQL注入关键字列表，使用竖线分隔，便于后续拆分
     public static String SQL_REGEX = "\u000B|and |extractvalue|updatexml|sleep|exec |insert |select |delete |update |drop |count |chr |mid |master |truncate |char |declare |or |union |like |+|/*|user()";
 
     /**
@@ -43,6 +48,7 @@ public class SqlUtil {
      * - \\,：逗号（需要转义）
      * - \\.：小数点（需要转义）
      */
+    // ORDER BY字段验证正则表达式，只允许字母数字下划线空格逗号和小数点
     public static final String SQL_PATTERN = "[a-zA-Z0-9_\\ \\,\\.]+";
 
     /**
@@ -55,6 +61,8 @@ public class SqlUtil {
      * @return 验证通过的原参数值
      * @throws IllegalArgumentException 如果参数不符合规范
      */
+    // 静态方法，方便全局调用，无需创建对象
+    // 转义并验证ORDER BY SQL语句
     public static String escapeOrderBySql(String value) {
         // 如果参数不为空且不符合验证规则，抛出异常
         // StringUtils.isNotEmpty会检查字符串是否为null和空字符串
@@ -76,6 +84,8 @@ public class SqlUtil {
      * @param value 需要验证的排序参数字符串
      * @return true表示符合规范，false表示不符合规范
      */
+    // 静态方法，方便全局调用
+    // 验证ORDER BY语法是否符合规范
     public static boolean isValidOrderBySql(String value) {
         // 使用预定义的正则表达式进行匹配
         // String.matches方法会编译正则表达式并进行匹配
@@ -93,6 +103,8 @@ public class SqlUtil {
      * @param value 需要检查的输入值
      * @throws IllegalArgumentException 如果检测到SQL注入关键字
      */
+    // 静态方法，方便全局调用，无需创建对象
+    // SQL关键字检查，防止SQL注入攻击
     public static void filterKeyword(String value) {
         // 如果输入值为空，直接返回，无需检查
         // StringUtils.isEmpty会检查字符串是否为null、空字符串和"null"字符串

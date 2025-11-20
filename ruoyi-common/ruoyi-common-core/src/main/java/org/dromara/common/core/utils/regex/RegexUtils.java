@@ -1,6 +1,9 @@
+// 正则表达式工具类包声明，属于核心工具包
 package org.dromara.common.core.utils.regex;
 
+// 导入Hutool正则表达式工具类，提供基础正则操作能力
 import cn.hutool.core.util.ReUtil;
+// 导入正则表达式常量类，提供预定义的正则表达式
 import org.dromara.common.core.constant.RegexConstants;
 
 /**
@@ -10,7 +13,7 @@ import org.dromara.common.core.constant.RegexConstants;
  *
  * @author Feng
  */
-// 使用final修饰符，防止类被继承
+// 使用final修饰符，防止类被继承，符合工具类设计模式
 public final class RegexUtils extends ReUtil {
 
     /**
@@ -23,6 +26,7 @@ public final class RegexUtils extends ReUtil {
      * @param defaultInput 如果没有匹配时返回的默认值
      * @return 如果找到匹配的部分，则返回匹配的部分，否则返回默认值
      */
+    // 静态方法，方便全局调用，无需创建对象
     public static String extractFromString(String input, String regex, String defaultInput) {
         try {
             // 使用Hutool的ReUtil.get方法提取第一个匹配组

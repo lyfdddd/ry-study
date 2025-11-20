@@ -1,4 +1,4 @@
-// 网络工具类，提供IP地址相关判断功能
+// 网络工具类包声明，提供IP地址相关判断功能
 // 继承Hutool的NetUtil，提供增强的网络操作能力
 package org.dromara.common.core.utils;
 

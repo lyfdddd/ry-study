@@ -1,12 +1,23 @@
 // 基于Jakarta Bean Validation的参数校验工具类
+// 提供统一的参数校验入口，封装JSR 380规范实现
 package org.dromara.common.core.utils;
 
+// Jakarta验证约束违规接口，表示单个校验失败信息
+// 包含校验失败的属性路径、错误消息、无效值等信息
 import jakarta.validation.ConstraintViolation;
+// Jakarta验证约束违规异常，当校验失败时抛出
+// 包含所有校验失败的ConstraintViolation集合
 import jakarta.validation.ConstraintViolationException;
+// Jakarta验证器接口，提供参数校验的核心API
+// 支持标准校验注解和自定义校验注解
 import jakarta.validation.Validator;
+// Lombok注解：设置构造方法访问级别为私有，防止类被实例化
+// 工具类不应该被实例化，所有方法都是静态方法
 import lombok.AccessLevel;
+// Lombok注解：自动生成私有构造方法，使工具类无法被实例化
 import lombok.NoArgsConstructor;
 
+// Java Set集合接口，用于存储校验结果
 import java.util.Set;
 
 /**
@@ -30,6 +41,9 @@ public class ValidatorUtils {
      * 也支持自定义校验注解，如@Email、@Phone等
      * Validator是线程安全的，可以在多线程环境下共享使用
      */
+    // 使用SpringUtils从Spring容器中获取Validator Bean
+    // 这是单例模式的应用，确保全局只有一个Validator实例
+    // 从Spring容器中获取Validator单例，用于执行参数校验
     private static final Validator VALID = SpringUtils.getBean(Validator.class);
 
     /**
@@ -43,15 +57,20 @@ public class ValidatorUtils {
      * @param groups 校验组（可选），用于分组校验，如新增组、修改组等
      * @throws ConstraintViolationException 如果校验不通过，则抛出参数校验异常，包含所有校验错误信息
      */
+    // 静态方法，方便全局调用，无需创建对象
+    // 对给定对象进行参数校验，并根据指定的校验组进行校验
     public static <T> void validate(T object, Class<?>... groups) {
         // 执行参数校验，返回校验结果集合
         // validate方法会检查对象上所有标注了校验注解的字段
+        // 调用Validator.validate()方法执行校验，返回ConstraintViolation集合
         Set<ConstraintViolation<T>> validate = VALID.validate(object, groups);
         // 如果校验结果不为空，说明存在校验错误
+        // 使用Collection.isEmpty()判断集合是否为空
         if (!validate.isEmpty()) {
             // 抛出ConstraintViolationException异常，包含所有校验错误信息
             // 异常信息会被全局异常处理器捕获并转换为友好的错误提示
             // ConstraintViolationException是Jakarta Validation的标准异常
+            // 抛出ConstraintViolationException异常，包含所有校验错误信息
             throw new ConstraintViolationException("参数校验异常", validate);
         }
     }

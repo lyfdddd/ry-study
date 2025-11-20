@@ -1,4 +1,4 @@
-// 基于Hutool的对象工具类，提供空值安全的属性访问方法
+// 对象工具类包声明，基于Hutool提供空值安全的属性访问方法
 // 扩展Hutool的ObjectUtil，提供增强的对象操作能力
 package org.dromara.common.core.utils;
 
@@ -28,7 +28,7 @@ import java.util.function.Function;
 // access = AccessLevel.PRIVATE确保构造方法私有，无法从外部创建对象
 // 符合工具类的设计模式，所有方法都是静态方法
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-// 对象工具类，继承Hutool的ObjectUtil
+// 对象工具类，继承Hutool的ObjectUtil，复用其基础对象操作能力
 public class ObjectUtils extends ObjectUtil {
 
     /**

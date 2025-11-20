@@ -1,19 +1,41 @@
 // 基于Hutool的树形结构构建工具类，支持多根节点和叶子节点提取
+// 该类封装了Hutool的TreeUtil工具类，提供树形结构构建的便捷方法
+// 主要应用于组织架构、菜单管理、分类管理等需要树形展示的场景
 package org.dromara.common.core.utils;
 
+// Hutool集合工具类，提供集合判空、创建等操作
+// CollUtil.isEmpty()用于判断集合是否为空，避免空指针异常
 import cn.hutool.core.collection.CollUtil;
+// Hutool树形结构核心类，表示树节点
+// Tree类封装了树节点的属性和子节点列表
 import cn.hutool.core.lang.tree.Tree;
+// Hutool树节点配置类，用于自定义树节点字段映射
+// 可以配置idKey、parentIdKey、nameKey等字段名
 import cn.hutool.core.lang.tree.TreeNodeConfig;
+// Hutool树形结构工具类，提供树构建的基础方法
+// TreeUtil.build()是核心的树构建方法
 import cn.hutool.core.lang.tree.TreeUtil;
+// Hutool树节点解析器接口，用于将原始数据转换为树节点
+// NodeParser允许自定义节点转换逻辑
 import cn.hutool.core.lang.tree.parser.NodeParser;
+// Lombok注解：设置构造方法访问级别为私有，防止类被实例化
+// 工具类不应该被实例化，所有方法都是静态方法
 import lombok.AccessLevel;
+// Lombok注解：自动生成私有构造方法，使工具类无法被实例化
 import lombok.NoArgsConstructor;
+// 反射工具类，提供对象属性访问方法
+// ReflectUtils.invokeGetter()用于通过getter方法获取属性值
 import org.dromara.common.core.utils.reflect.ReflectUtils;
 
+// Java List集合接口，用于存储树节点列表
 import java.util.List;
+// Java Set集合接口，用于存储节点ID集合
 import java.util.Set;
+// Java函数式接口，用于方法引用和Lambda表达式
 import java.util.function.Function;
+// Java Stream API，用于集合流式处理
 import java.util.stream.Collectors;
+// Java Stream接口，用于流式操作
 import java.util.stream.Stream;
 
 /**
@@ -38,6 +60,7 @@ public class TreeBuildUtils extends TreeUtil {
      */
     // 默认树节点配置，将nameKey设置为"label"以适配前端组件
     // 前端组件（如Element UI、Ant Design）通常使用label作为显示字段
+    // 通过链式调用setNameKey()方法修改默认配置
     public static final TreeNodeConfig DEFAULT_CONFIG = TreeNodeConfig.DEFAULT_CONFIG.setNameKey("label");
 
     /**
@@ -53,15 +76,20 @@ public class TreeBuildUtils extends TreeUtil {
      */
     // 构建树形结构（自动检测根节点）
     // 自动从列表中第一个元素获取parentId作为顶级节点ID
+    // 使用泛型支持任意类型的节点和ID
     public static <T, K> List<Tree<K>> build(List<T> list, NodeParser<T, K> nodeParser) {
-        // 如果列表为空，返回空列表
+        // 如果列表为空，返回空列表，避免后续操作出现空指针异常
+        // CollUtil.isEmpty()同时检查null和空集合
         if (CollUtil.isEmpty(list)) {
+            // 返回空ArrayList，避免返回null导致调用方需要额外判空
             return CollUtil.newArrayList();
         }
         // 从第一个元素获取parentId作为顶级节点ID
         // 使用反射工具类获取parentId属性值，支持任意类型的parentId字段
+        // ReflectUtils.invokeGetter()通过getter方法获取属性值，避免硬编码字段名
         K k = ReflectUtils.invokeGetter(list.get(0), "parentId");
         // 调用TreeUtil.build构建树形结构，使用默认配置
+        // 传入列表、根节点ID、配置和解析器，Hutool会自动构建树形结构
         return TreeUtil.build(list, k, DEFAULT_CONFIG, nodeParser);
     }
 
@@ -79,13 +107,16 @@ public class TreeBuildUtils extends TreeUtil {
      */
     // 构建树形结构（指定根节点）
     // 根据指定的parentId作为顶级节点构建树形结构
+    // 允许调用方指定根节点，更灵活
     public static <T, K> List<Tree<K>> build(List<T> list, K parentId, NodeParser<T, K> nodeParser) {
-        // 如果列表为空，返回空列表
+        // 如果列表为空，返回空列表，避免后续操作出现空指针异常
         if (CollUtil.isEmpty(list)) {
+            // 返回空ArrayList，避免返回null导致调用方需要额外判空
             return CollUtil.newArrayList();
         }
         // 调用TreeUtil.build构建树形结构，使用默认配置
         // parentId指定为顶级节点的父ID，通常是0或null
+        // 使用Hutool的TreeUtil.build()方法构建树，传入自定义的根节点ID
         return TreeUtil.build(list, parentId, DEFAULT_CONFIG, nodeParser);
     }
 
@@ -105,26 +136,33 @@ public class TreeBuildUtils extends TreeUtil {
      */
     // 构建多根节点的树结构（支持多个顶级节点）
     // 自动检测所有根节点（没有父节点的节点），并为每个根节点构建子树
+    // 使用函数式接口支持灵活的数据提取方式
     public static <T, K> List<Tree<K>> buildMultiRoot(List<T> list, Function<T, K> getId, Function<T, K> getParentId, NodeParser<T, K> parser) {
-        // 如果列表为空，返回空列表
+        // 如果列表为空，返回空列表，避免后续操作出现空指针异常
         if (CollUtil.isEmpty(list)) {
+            // 返回空ArrayList，避免返回null导致调用方需要额外判空
             return CollUtil.newArrayList();
         }
 
         // 获取所有parentId集合
         // 使用StreamUtils.toSet方法，将list中的每个元素的parentId提取为Set
+        // StreamUtils.toSet()是项目封装的流式处理工具，将集合转换为Set
         Set<K> rootParentIds = StreamUtils.toSet(list, getParentId);
         // 获取所有id集合
         // 同样使用StreamUtils.toSet方法提取id
         Set<K> ids = StreamUtils.toSet(list, getId);
         // 移除所有有子节点的parentId，剩下的就是根节点的parentId
         // 这是森林结构的关键算法：根节点的parentId不会出现在任何节点的id中
+        // 使用Set.removeAll()方法求差集，找出真正的根节点
         rootParentIds.removeAll(ids);
 
         // 构建每一个根parentId下的树，并合并成最终结果列表
         // 使用flatMap将多个List<Tree<K>>扁平化为一个List<Tree<K>>
+        // Stream.flatMap()将每个根节点构建的树列表扁平化为一个流
         return rootParentIds.stream()
+            // 为每个根节点ID构建树
             .flatMap(rootParentId -> TreeUtil.build(list, rootParentId, parser).stream())
+            // 收集为List
             .collect(Collectors.toList());
     }
 
@@ -140,14 +178,18 @@ public class TreeBuildUtils extends TreeUtil {
     // 获取节点列表中所有节点的叶子节点
     // 叶子节点是指没有子节点的节点
     public static <K> List<Tree<K>> getLeafNodes(List<Tree<K>> nodes) {
-        // 如果节点列表为空，返回空列表
+        // 如果节点列表为空，返回空列表，避免后续操作出现空指针异常
         if (CollUtil.isEmpty(nodes)) {
+            // 返回空ArrayList，避免返回null导致调用方需要额外判空
             return CollUtil.newArrayList();
         }
         // 使用Stream API扁平化处理所有节点
         // flatMap将多个Stream合并为一个，extractLeafNodes递归提取叶子节点
+        // 调用extractLeafNodes()递归提取每个节点的叶子节点
         return nodes.stream()
+            // 使用flatMap扁平化所有叶子节点流
             .flatMap(TreeBuildUtils::extractLeafNodes)
+            // 收集为List
             .collect(Collectors.toList());
     }
 
@@ -162,14 +204,19 @@ public class TreeBuildUtils extends TreeUtil {
      */
     // 获取指定节点下的所有叶子节点（递归方法）
     // 私有方法，用于递归提取叶子节点
+    // 使用Stream的递归扁平化处理，支持任意深度的树结构
     private static <K> Stream<Tree<K>> extractLeafNodes(Tree<K> node) {
         // 如果节点没有子节点，说明是叶子节点，返回包含该节点的Stream
+        // Tree.hasChild()是Hutool提供的方法，判断节点是否有子节点
         if (!node.hasChild()) {
+            // 使用Stream.of()创建单元素流
             return Stream.of(node);
         } else {
             // 递归调用，获取所有子节点的叶子节点
             // 使用flatMap将多个Stream合并为一个，实现递归扁平化
+            // 获取子节点列表的流
             return node.getChildren().stream()
+                // 递归调用extractLeafNodes()提取每个子节点的叶子节点
                 .flatMap(TreeBuildUtils::extractLeafNodes);
         }
     }

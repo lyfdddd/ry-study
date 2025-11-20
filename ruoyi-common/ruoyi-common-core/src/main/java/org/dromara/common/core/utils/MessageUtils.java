@@ -1,5 +1,6 @@
-// 国际化消息工具类，提供统一的国际化消息获取入口
+// 国际化消息工具类包声明，提供统一的国际化消息获取入口
 // 封装Spring的MessageSource，简化国际化消息获取流程
+// 是RuoYi-Vue-Plus实现多语言支持的核心组件
 package org.dromara.common.core.utils;
 
 // Lombok注解：设置构造方法访问级别为私有，防止工具类被实例化
@@ -8,10 +9,13 @@ import lombok.AccessLevel;
 // Lombok注解：自动生成私有构造方法，使工具类无法被实例化
 import lombok.NoArgsConstructor;
 // Spring国际化消息源接口，用于读取国际化资源文件
+// MessageSource是Spring提供的国际化核心接口，支持多语言消息管理
 import org.springframework.context.MessageSource;
 // Spring未找到消息异常，当消息键不存在时抛出
+// NoSuchMessageException继承自RuntimeException，表示消息查找失败
 import org.springframework.context.NoSuchMessageException;
 // Spring区域上下文持有者，用于获取当前线程的Locale（语言环境）
+// LocaleContextHolder使用ThreadLocal存储当前线程的语言环境，确保线程安全
 import org.springframework.context.i18n.LocaleContextHolder;
 
 /**
@@ -34,6 +38,7 @@ public class MessageUtils {
      * 从Spring容器中获取MessageSource单例，用于读取国际化资源文件
      * 支持.properties文件中的多语言消息定义
      * 在Spring Boot启动时自动注入，支持messages_zh_CN.properties、messages_en_US.properties等
+     * 采用单例模式，确保全局只有一个MessageSource实例，避免重复创建
      */
     // 使用SpringUtils从Spring容器中获取MessageSource Bean
     // 这是单例模式的应用，确保全局只有一个MessageSource实例
@@ -51,6 +56,7 @@ public class MessageUtils {
      * @return 国际化翻译值，如果找不到对应消息则返回code本身
      */
     // 静态方法，方便全局调用，无需创建对象
+    // 使用可变参数支持任意数量的消息参数
     // 根据消息键和参数获取国际化消息
     public static String message(String code, Object... args) {
         try {
